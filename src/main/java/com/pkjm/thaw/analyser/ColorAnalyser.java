@@ -20,7 +20,8 @@ public class ColorAnalyser {
     }
 
     private final int spanSize = 300;
-    private final int stepSize = 30;
+    private final int stepSize = 60;
+    private final int pixelSize = 10;
     private int[] rgb = new int[3];
     private float[] hsv = new float[3];
     private float calS;
@@ -41,7 +42,7 @@ public class ColorAnalyser {
             for (int i = cx - spanSize; i <= cx + spanSize; i += stepSize) {
                 for (int j = cy - spanSize; j <= cy + spanSize; j += stepSize) {
                     color = bitmap.getPixel(i, j);
-                    colorToRGBint(color, rgb);
+                    colorToRGB(color, rgb);
                     sumR += rgb[0] * adj;
                     sumG += rgb[1] * adj;
                     sumB += rgb[2] * adj;
@@ -83,7 +84,7 @@ public class ColorAnalyser {
             for (int i = cx-spanSize; i <= cx+spanSize; i += stepSize){
                 for (int j = cy-spanSize; j <= cy+spanSize; j += stepSize){
                     color = bitmap.getPixel(i, j);
-                    colorToRGBint(color, rgb);
+                    colorToRGB(color, rgb);
                     sumR += rgb[0]*adj;
                     sumG += rgb[1]*adj;
                     sumB += rgb[2]*adj;
@@ -106,16 +107,22 @@ public class ColorAnalyser {
             }
             pixelDrawer.post();
 
-            int state = 0;
-            if (0.75 * count < whitePixelCount) {
-                state = 2;
-            } else if (0.25 * count < whitePixelCount) {
-                state = 1;
-            }
+//            int state = 0;
+//            if (0.75 * count < whitePixelCount) {
+//                state = 2;
+//            } else if (0.25 * count < whitePixelCount) {
+//                state = 1;
+//            }
 
             rgb[0] = (int)(sumR / count);
             rgb[1] = (int)(sumG / count);
             rgb[2] = (int)(sumB / count);
+
+            if (true) { // Determine exact color
+                rgb[0] = (rgb[0] > 100) ? 255 : 0;
+                rgb[1] = (rgb[1] > 100) ? 255 : 0;
+                rgb[2] = (rgb[2] > 100) ? 255 : 0;
+            }
 
             color = RGBToColor(rgb);
 
@@ -123,19 +130,28 @@ public class ColorAnalyser {
 //            Log.d("thaw-sumwhite","X:" + sumWhiteX);
 //            Log.d("thaw-sumwhite","Y:" + sumWhiteY);
 //            Log.d("thaw-sumwhite","Scale:" + sumWhiteScale);
-            if (sumWhiteScale == 0) {
-                udpout[5] = 0;
-                udpout[6] = 0;
-            } else {
-                double whiteangle = Math.toDegrees(Math.atan2(sumWhiteY,sumWhiteX));
-                Log.d("thaw-sumwhite", "Deg:" + whiteangle);
-                udpout[5] = (byte) (((sumWhiteX/sumWhiteScale) * 128) + 128);
-                udpout[6] = (byte) (((sumWhiteY/sumWhiteScale) * 128) + 128);
 
+            if (sumWhiteScale == 0) {
+                sumWhiteX = 128;
+                sumWhiteY = 128;
+            } else {
+                sumWhiteX = (int) (((sumWhiteX/sumWhiteScale) * 128) + 128);
+                sumWhiteY = (int) (((sumWhiteY/sumWhiteScale) * 128) + 128);
             }
-            colorToRGB(color,udpout);
+//            double whiteangle = Math.toDegrees(Math.atan2(sumWhiteY-128,sumWhiteX-128));
+//            Log.d("thaw-sumwhite", "Deg:" + whiteangle);
+//            Log.d("thaw-sumwhite", "X:" + sumWhiteX);
+//            Log.d("thaw-sumwhite", "Y:" + sumWhiteY);
+
+            colorToRGB(color, rgb);
+            udpout[0] = (byte) rgb[0];
+            udpout[1] = (byte) rgb[1];
+            udpout[2] = (byte) rgb[2];
+
+            udpout[5] = (byte) sumWhiteX;
+            udpout[6] = (byte) sumWhiteY;
             udpout[7] = (byte) count;
-            udpout[8] = (byte) state;
+//            udpout[8] = (byte) state;
         }catch (Exception e){
             e.printStackTrace();
             Log.d("thaw-calc-color", "can't get bitmap");
@@ -144,13 +160,7 @@ public class ColorAnalyser {
         }
     }
 
-    private void colorToRGB(int color,byte[] rgb){
-        rgb[0] = (byte)((color & 0x00FF0000) >> 16);
-        rgb[1] = (byte)((color & 0x0000FF00) >> 8);
-        rgb[2] = (byte)((color & 0x000000FF) >> 0);
-    }
-
-    private void colorToRGBint(int color,int[] rgb){
+    private void colorToRGB(int color, int[] rgb){
         rgb[0] = (color & 0x00FF0000) >> 16;
         rgb[1] = (color & 0x0000FF00) >> 8;
         rgb[2] = (color & 0x000000FF) >> 0;
@@ -165,7 +175,6 @@ public class ColorAnalyser {
     }
 
     class PixelDrawer{
-        private final int pixelSize = 10;
         private Canvas canvas;
         private Paint paint;
         private TextureView textureView;

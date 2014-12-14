@@ -83,14 +83,6 @@ public class ThawActivity extends Activity {
         this.analyser = new Analyser(
             this,fragment,debugText,showColorBtn,check_debug,ipv4,port);
 
-        prefs.registerOnSharedPreferenceChangeListener(
-                new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(
-                    SharedPreferences sharedPreferences, String key) {
-
-            }
-        });
     }
 
 
